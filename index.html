@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Temple Anesthesia Resident Schedule Viewer 2026-2027</title>
     
     <!-- Tailwind CSS for styling -->
@@ -22,38 +22,52 @@
             .no-print { display: none !important; }
             .shadow-sm { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
         }
+        /* Custom hide scrollbar for sleek horizontal scrolling */
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
-<body class="bg-[#9e152b]">
-    <div id="root"></div>
+<body class="bg-[#9e152b] overflow-x-hidden w-full">
+    <div id="root" class="w-full"></div>
 
     <script type="text/babel">
         const { useState, useRef, useMemo, useEffect } = React;
 
+        // --- SVG Icons ---
         const ChevronLeft = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>
         );
         const Info = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
         );
-        const CheckCircle = ({ size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        );
         const ArrowRight = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        );
+        const CheckCircle = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         );
         const XIcon = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18M6 6l12 12"/></svg>
         );
-
-        const TempleLogo = ({ className = "" }) => (
-            <img 
-                src="https://templenews-media.s3.amazonaws.com/wp-content/uploads/2023/08/01102429/Screen-Shot-2023-08-01-at-10.21.10-AM.png" 
-                alt="Temple Logo" 
-                className={`${className} object-contain rounded-md`} 
-            />
+        const ZoomIn = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        );
+        const ZoomOut = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        );
+        const GridIcon = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        );
+        const ListIcon = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
         );
 
+        // --- EMBEDDED DATA ---
         const EMBEDDED_CSV_DATA = `,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 PGY4s,06/29,07/06,07/13,07/20,07/27,08/03,08/10,08/17,08/24,08/31,09/07,09/14,09/21,09/28,10/05,10/12,10/19,10/26,11/02,11/09,11/16,11/23,11/30,12/07,12/14,12/21,12/28,01/04,01/11,01/18,01/25,02/01,02/08,02/15,02/22,03/01,03/08,03/15,03/22,03/29,04/05,04/12,04/19,04/26,05/03,05/10,05/17,05/24,05/31,06/07,06/14,06/21,
 Block,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7,8,8,8,8,9,9,9,9,10,10,10,10,11,11,11,11,12,12,12,12,13,13,13,13,
@@ -152,6 +166,7 @@ FM,FMLA,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 LA,Leave of Absence,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
 
+        // Pre-defined color palette
         const PALETTE = [
             "bg-blue-100 text-blue-800 border-blue-300",
             "bg-green-100 text-green-800 border-green-300",
@@ -318,7 +333,6 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             return { residentsByPgy, dates, rotKey };
         };
 
-        // --- Pin Pad Component ---
         const PinPadScreen = ({ onSuccess }) => {
             const [input, setInput] = useState("");
             const [attempts, setAttempts] = useState(0);
@@ -405,25 +419,18 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             }
 
             return (
-                <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6">
+                <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6 w-full">
                     <div className="bg-gradient-to-br from-gray-600 to-gray-800 p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_2px_5px_rgba(255,255,255,0.3)] border border-gray-500 max-w-sm w-full relative">
-                        {/* Metal texture overlay */}
                         <div className="absolute inset-0 opacity-10 rounded-3xl bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.1)_2px,rgba(255,255,255,0.1)_4px)] pointer-events-none"></div>
-                        
                         <div className="relative z-10">
-                            {/* Top Indicator */}
                             <div className="flex justify-center mb-6">
                                 <div className={`w-4 h-4 rounded-full border-2 border-black/80 transition-all duration-300 ${statusLight}`}></div>
                             </div>
-
-                            {/* Screen */}
                             <div className="bg-black p-4 rounded-xl border-4 border-gray-700 shadow-[inset_0_5px_15px_rgba(0,0,0,1)] mb-8 h-16 flex items-center justify-center">
                                 <div className="text-green-500 text-4xl font-mono tracking-[0.3em] font-bold">
                                     {input.split('').map(() => '*').join('')}
                                 </div>
                             </div>
-
-                            {/* Pin Pad Grid */}
                             <div className="grid grid-cols-3 gap-y-6 justify-items-center">
                                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(renderButton)}
                                 <div className="col-start-2">
@@ -441,15 +448,21 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
 
             const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [appState, setAppState] = useState('SELECT'); // SELECT, VIEW
+            const [viewMode, setViewMode] = useState('GRID'); // GRID, TIMELINE
+            const [zoom, setZoom] = useState(1);
             const [data, setData] = useState(initialData);
             
-            // Set default PGY to PGY1s (which is now reversed below to be first)
             const [selectedPgy, setSelectedPgy] = useState(initialData ? "PGY1s" : '');
-            
             const [selectedResidents, setSelectedResidents] = useState([]);
-            
-            // New overlap modal state
             const [overlapModal, setOverlapModal] = useState(null);
+            
+            // Check orientation for prompt
+            const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+            useEffect(() => {
+                const handleResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
+                window.addEventListener('resize', handleResize);
+                return () => window.removeEventListener('resize', handleResize);
+            }, []);
 
             const [colorMap, setColorMap] = useState(() => {
                 if (!initialData) return {};
@@ -462,8 +475,8 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 newColorMap["C1"] = boldBlack;
                 newColorMap["c1"] = boldBlack;
                 newColorMap["1N"] = boldBlack;
-                newColorMap["1n"] = boldBlack; // lowercase coverage
-                newColorMap["IN"] = boldBlack; // typo coverage
+                newColorMap["1n"] = boldBlack; 
+                newColorMap["IN"] = boldBlack;
 
                 const royalBlue = "bg-blue-600 text-white border-blue-800 font-extrabold shadow-sm";
                 newColorMap["C2"] = royalBlue;
@@ -520,7 +533,6 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 return monthGroups;
             };
 
-            // ADDING BACK MISSING SELECTION LOGIC
             const toggleResidentSelection = (resident) => {
                 setSelectedResidents(prev => {
                     const isSelected = prev.some(r => r.name === resident.name);
@@ -532,20 +544,19 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 });
             };
 
-            // ADDING BACK MISSING OVERLAP MODAL LOGIC
             const handleTileClick = (resident, week) => {
                 const rotation = week.rotation;
                 const date = week.date;
                 
-                // Group C1-C5 together for overlaps
-                const isNightFloat = ["C1", "C2", "C3", "C4", "C5"].includes(rotation);
+                const isNightFloat = ["C1", "C2", "C3", "C4", "C5"].includes(rotation) || rotation.toUpperCase() === "1N";
 
                 const overlaps = [];
                 Object.values(data.residentsByPgy).flat().forEach(r => {
-                    if (r.name === resident.name) return; // Skip self
+                    if (r.name === resident.name) return;
                     const rWeek = r.schedule.find(w => w.date === date);
                     if (rWeek) {
-                        if (rWeek.rotation === rotation || (isNightFloat && ["C1", "C2", "C3", "C4", "C5"].includes(rWeek.rotation))) {
+                        const checkIsNightFloat = ["C1", "C2", "C3", "C4", "C5"].includes(rWeek.rotation) || rWeek.rotation.toUpperCase() === "1N";
+                        if (rWeek.rotation === rotation || (isNightFloat && checkIsNightFloat)) {
                             overlaps.push(r);
                         }
                     }
@@ -554,14 +565,21 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 setOverlapModal({ resident, week, overlaps });
             };
 
+            const startView = () => {
+                setAppState('VIEW');
+                if (selectedResidents.length > 1) {
+                    setViewMode('TIMELINE');
+                }
+            };
+
             if (!isAuthenticated) {
                 return <PinPadScreen onSuccess={() => setIsAuthenticated(true)} />;
             }
 
             if (!data) {
                 return (
-                    <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6">
-                        <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
+                    <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6 w-full">
+                        <div className="text-center bg-white p-8 rounded-2xl shadow-xl w-full max-w-md mx-auto">
                             <h2 className="text-xl font-bold text-slate-800">Error: Invalid CSV Data</h2>
                             <p className="text-slate-500 mt-2">Could not parse the embedded CSV data.</p>
                         </div>
@@ -570,16 +588,20 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             }
 
             if (appState === 'SELECT') {
-                // Sort alphabetically so PGY1s are first (leftmost)
                 const pgyLevels = Object.keys(data.residentsByPgy).sort();
                 const residentsInPgy = data.residentsByPgy[selectedPgy] || [];
 
                 return (
-                    <div className="min-h-screen bg-[#9e152b] p-6 md:p-12 pb-32 flex flex-col justify-between">
+                    <div className="min-h-screen bg-[#9e152b] p-4 md:p-12 pb-32 flex flex-col justify-between w-full">
                         <div className="max-w-6xl mx-auto w-full">
                             <div className="flex flex-col md:flex-row justify-between md:items-end mb-8 border-b border-white/20 pb-4 gap-4">
                                 <div className="flex items-center gap-5">
-                                    <TempleLogo className="h-16 md:h-20" />
+                                    <img 
+                                        src="https://templenews-media.s3.amazonaws.com/wp-content/uploads/2023/08/01102429/Screen-Shot-2023-08-01-at-10.21.10-AM.png" 
+                                        alt="Temple Logo" 
+                                        className="h-12 md:h-16 w-auto object-contain rounded-md shadow-sm bg-white"
+                                        onError={(e) => e.target.style.display='none'} 
+                                    />
                                     <div>
                                         <h1 className="text-2xl md:text-3xl font-bold text-white">Temple Anesthesia Resident Schedule Viewer 2026-2027</h1>
                                         <p className="text-white/80 mt-1 md:mt-2">Select one or more residents to view and compare schedules.</p>
@@ -587,50 +609,52 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                 </div>
                             </div>
 
-                            <div className="flex space-x-2 mb-8 bg-black/20 p-1 rounded-xl w-fit overflow-x-auto">
-                                {pgyLevels.map((pgy) => (
-                                    <button
-                                        key={pgy}
-                                        onClick={() => setSelectedPgy(pgy)}
-                                        className={`px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap ${
-                                            selectedPgy === pgy 
-                                                ? 'bg-white text-[#9e152b] shadow-sm' 
-                                                : 'text-white/70 hover:text-white hover:bg-white/10'
-                                        }`}
-                                    >
-                                        {pgy}
-                                    </button>
-                                ))}
+                            <div className="w-full max-w-full overflow-x-auto hide-scrollbar">
+                                <div className="flex space-x-2 mb-8 bg-black/20 p-1 rounded-xl w-fit">
+                                    {pgyLevels.map((pgy) => (
+                                        <button
+                                            key={pgy}
+                                            onClick={() => setSelectedPgy(pgy)}
+                                            className={`px-5 md:px-6 py-2 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base ${
+                                                selectedPgy === pgy 
+                                                    ? 'bg-white text-[#9e152b] shadow-sm' 
+                                                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                                            }`}
+                                        >
+                                            {pgy}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 w-full">
                                 {residentsInPgy.map((resident, idx) => {
                                     const isSelected = selectedResidents.some(r => r.name === resident.name);
                                     return (
                                         <div 
                                             key={idx}
                                             onClick={() => toggleResidentSelection(resident)}
-                                            className={`p-6 rounded-xl border cursor-pointer transition-all group flex items-center justify-between ${
+                                            className={`p-4 md:p-6 rounded-xl border cursor-pointer transition-all group flex items-center justify-between w-full ${
                                                 isSelected 
                                                     ? 'bg-slate-50 border-emerald-500 shadow-[0_0_15px_rgba(255,255,255,0.3)] ring-2 ring-emerald-500 scale-[1.02]' 
                                                     : 'bg-white border-transparent shadow-sm hover:shadow-lg hover:ring-2 hover:ring-white/50'
                                             }`}
                                         >
-                                            <div className="flex items-center space-x-3">
-                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${
+                                            <div className="flex items-center space-x-3 w-full overflow-hidden">
+                                                <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center font-bold transition-colors ${
                                                     isSelected ? 'bg-[#9e152b] text-white' : 'bg-[#9e152b]/10 text-[#9e152b]'
                                                 }`}>
                                                     {resident.name.charAt(0)}
                                                 </div>
-                                                <div>
-                                                    <h3 className="font-semibold text-slate-800">{resident.name.split(',')[0]}</h3>
-                                                    <p className="text-xs text-slate-500">{resident.name.includes(',') ? resident.name.split(',')[1].trim() : ''}</p>
+                                                <div className="truncate w-full pr-2">
+                                                    <h3 className="font-semibold text-slate-800 text-sm md:text-base truncate w-full" title={resident.name.split(',')[0]}>{resident.name.split(',')[0]}</h3>
+                                                    <p className="text-[10px] md:text-xs text-slate-500 truncate">{resident.name.includes(',') ? resident.name.split(',')[1].trim() : ''}</p>
                                                 </div>
                                             </div>
                                             {isSelected ? (
-                                                <CheckCircle size={20} className="text-emerald-500" />
+                                                <CheckCircle size={20} className="text-emerald-500 shrink-0" />
                                             ) : (
-                                                <ArrowRight size={18} className="text-slate-300 group-hover:text-[#9e152b] transition-colors" />
+                                                <ArrowRight size={18} className="text-slate-300 group-hover:text-[#9e152b] transition-colors shrink-0" />
                                             )}
                                         </div>
                                     );
@@ -639,24 +663,23 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                         </div>
 
                         {selectedResidents.length > 0 && (
-                            <div className="fixed bottom-4 left-4 right-4 md:bottom-8 md:left-auto md:right-8 z-50 flex items-center justify-center md:justify-end gap-3 md:gap-4">
+                            <div className="fixed bottom-4 left-4 right-4 md:bottom-8 md:left-auto md:right-8 z-50 flex items-center justify-center md:justify-end gap-2 md:gap-4">
                                 <button 
                                     onClick={() => setSelectedResidents([])}
-                                    className="px-5 md:px-6 py-3.5 md:py-4 bg-white text-[#9e152b] rounded-full font-bold shadow-xl hover:bg-slate-100 transition-all transform active:scale-95 md:hover:scale-105 flex items-center gap-2 ring-4 ring-black/10 text-sm md:text-base"
+                                    className="px-4 md:px-6 py-3.5 md:py-4 bg-white text-[#9e152b] rounded-full font-bold shadow-xl hover:bg-slate-100 transition-all transform active:scale-95 md:hover:scale-105 flex items-center gap-2 ring-4 ring-black/10 text-sm md:text-base shrink-0"
                                 >
                                     Reset
                                 </button>
                                 <button 
-                                    onClick={() => setAppState('VIEW')}
-                                    className="flex-1 md:flex-none px-5 md:px-6 py-3.5 md:py-4 bg-slate-900 text-white rounded-full font-bold shadow-2xl hover:bg-slate-800 transition-all transform active:scale-95 md:hover:scale-105 flex items-center justify-center gap-2 md:gap-3 ring-4 ring-black/10 text-sm md:text-base whitespace-nowrap"
+                                    onClick={startView}
+                                    className="flex-1 md:flex-none px-4 md:px-6 py-3.5 md:py-4 bg-slate-900 text-white rounded-full font-bold shadow-2xl hover:bg-slate-800 transition-all transform active:scale-95 md:hover:scale-105 flex items-center justify-center gap-2 md:gap-3 ring-4 ring-black/10 text-sm md:text-base whitespace-nowrap min-w-0"
                                 >
-                                    {/* Responsive text shortening for mobile screens */}
-                                    <span className="hidden sm:inline">{selectedResidents.length === 1 ? 'View Schedule' : 'Side-by-Side Comparison'}</span>
-                                    <span className="sm:hidden">{selectedResidents.length === 1 ? 'View' : 'Compare'}</span>
+                                    <span className="hidden sm:inline truncate">{selectedResidents.length === 1 ? 'View Schedule' : 'Side-by-Side Comparison'}</span>
+                                    <span className="sm:hidden truncate">{selectedResidents.length === 1 ? 'View' : 'Compare'}</span>
                                     <div className="bg-[#9e152b] text-white rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center text-xs md:text-sm shrink-0">
                                         {selectedResidents.length}
                                     </div>
-                                    <ArrowRight size={18} className="text-white shrink-0" />
+                                    <ArrowRight size={18} className="text-white shrink-0 hidden sm:block" />
                                 </button>
                             </div>
                         )}
@@ -691,56 +714,79 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 const allRotCodes = [...new Set(selectedResidents.flatMap(r => r.schedule.map(s => s.rotation)))];
 
                 return (
-                    <div className="min-h-screen bg-[#9e152b] p-6 md:p-8 flex flex-col justify-between">
+                    <div className="min-h-screen bg-[#9e152b] p-4 md:p-8 flex flex-col justify-between w-full">
                         <div className="max-w-[1400px] mx-auto w-full">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
-                                <div className="flex items-center space-x-4">
+                            {/* Header */}
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                                <div className="flex items-center space-x-3 md:space-x-4">
                                     <button 
                                         onClick={() => setAppState('SELECT')}
-                                        className="no-print p-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors text-white"
+                                        className="no-print p-2 bg-white/10 border border-white/20 rounded-lg hover:bg-white/20 transition-colors text-white shrink-0"
                                     >
                                         <ChevronLeft size={20} />
                                     </button>
-                                    <TempleLogo className="h-10 sm:block hidden" />
-                                    <div>
-                                        <h1 className="text-2xl font-bold text-white print:text-black flex items-center">
-                                            {isSingle ? selectedResidents[0].name : "Side-by-Side Comparison"}
+                                    <img 
+                                        src="https://templenews-media.s3.amazonaws.com/wp-content/uploads/2023/08/01102429/Screen-Shot-2023-08-01-at-10.21.10-AM.png" 
+                                        alt="Temple Logo" 
+                                        className="h-8 md:h-10 w-auto object-contain sm:block hidden rounded bg-white p-1" 
+                                        onError={(e) => e.target.style.display='none'} 
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                        <h1 className="text-xl md:text-2xl font-bold text-white print:text-black flex items-center flex-wrap gap-2">
+                                            <span className="truncate">{isSingle ? selectedResidents[0].name.split(',')[0] : "Side-by-Side Comparison"}</span>
                                             {isSingle && (
-                                                <span className="ml-3 px-3 py-1 bg-white/20 print:bg-slate-200 text-white print:text-slate-700 border border-white/30 print:border-transparent text-sm rounded-full font-medium">
+                                                <span className="px-2 py-0.5 md:px-3 md:py-1 bg-white/20 print:bg-slate-200 text-white print:text-slate-700 border border-white/30 print:border-transparent text-[10px] md:text-sm rounded-full font-medium whitespace-nowrap">
                                                     {selectedResidents[0].pgy}
                                                 </span>
                                             )}
                                         </h1>
-                                        <p className="text-white/80 print:text-slate-500 text-sm mt-1">Academic Year 2026 - 2027</p>
+                                        <p className="text-white/80 print:text-slate-500 text-xs md:text-sm mt-0.5">Academic Year 2026 - 2027</p>
                                     </div>
                                 </div>
-                                <button 
-                                    onClick={() => window.print()}
-                                    className="no-print px-5 py-2.5 bg-white text-[#9e152b] rounded-xl font-bold shadow-sm hover:bg-slate-100 transition-colors sm:block"
-                                >
-                                    Print Schedule
-                                </button>
+                                <div className="flex gap-2">
+                                    {isSingle && (
+                                        <div className="flex bg-black/30 p-1 rounded-lg shrink-0">
+                                            <button onClick={() => setViewMode('GRID')} className={`px-3 py-1.5 md:py-2 text-xs md:text-sm font-bold rounded-md flex items-center gap-1.5 transition-all ${viewMode === 'GRID' ? 'bg-white text-[#9e152b] shadow-sm' : 'text-white hover:bg-white/10'}`}>
+                                                <GridIcon size={14} /> <span className="hidden sm:inline">Grid</span>
+                                            </button>
+                                            <button onClick={() => setViewMode('TIMELINE')} className={`px-3 py-1.5 md:py-2 text-xs md:text-sm font-bold rounded-md flex items-center gap-1.5 transition-all ${viewMode === 'TIMELINE' ? 'bg-white text-[#9e152b] shadow-sm' : 'text-white hover:bg-white/10'}`}>
+                                                <ListIcon size={14} /> <span className="hidden sm:inline">Timeline</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                    <button 
+                                        onClick={() => window.print()}
+                                        className="no-print px-4 py-1.5 md:py-2.5 bg-white text-[#9e152b] rounded-xl font-bold shadow-sm hover:bg-slate-100 transition-colors hidden sm:block whitespace-nowrap text-sm md:text-base"
+                                    >
+                                        Print
+                                    </button>
+                                </div>
                             </div>
 
-                            {/* New Interactive Hint Banner */}
-                            <div className="mb-6 bg-white/10 border border-white/20 p-3 rounded-xl flex items-center justify-center text-white text-sm font-medium shadow-sm no-print transition-all hover:bg-white/20">
-                                <Info size={18} className="mr-2 opacity-90 shrink-0" />
-                                <span className="text-center">Click on any rotation tile to see who else shares that rotation during the same week!</span>
+                            <div className="mb-6 bg-white/10 border border-white/20 p-2.5 md:p-3 rounded-xl flex items-center justify-center text-white text-xs md:text-sm font-medium shadow-sm no-print transition-all hover:bg-white/20 text-center mx-1">
+                                <Info size={16} className="mr-2 opacity-90 shrink-0" />
+                                <span>Click any rotation block to see who else shares that rotation week!</span>
                             </div>
 
-                            {isSingle ? (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                            {viewMode === 'TIMELINE' && window.innerWidth < 768 && isPortrait && (
+                                <div className="mb-4 bg-blue-900/40 border border-blue-400/30 p-2 rounded-lg flex justify-center text-white text-[10px] uppercase font-bold tracking-widest text-center shadow-inner no-print animate-pulse">
+                                    Rotate device for best Timeline view
+                                </div>
+                            )}
+
+                            {viewMode === 'GRID' && isSingle ? (
+                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 md:gap-6 mb-8 w-full">
                                     {organizeByMonth(selectedResidents[0].schedule).map((monthData, idx) => (
-                                        <div key={idx} className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm flex flex-col h-full print:break-inside-avoid">
-                                            <div className="bg-slate-100 border-b border-slate-200 px-4 py-3 flex justify-between items-center">
-                                                <h3 className="font-bold text-slate-800">{monthData.monthName}</h3>
-                                                <span className="text-xs font-semibold text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
+                                        <div key={idx} className="bg-white border border-slate-200 rounded-lg md:rounded-xl overflow-hidden shadow-sm flex flex-col h-full print:break-inside-avoid">
+                                            <div className="bg-slate-100 border-b border-slate-200 px-2 py-1.5 md:px-4 md:py-3 flex justify-between items-center">
+                                                <h3 className="font-bold text-slate-800 text-[10px] md:text-base truncate">{monthData.monthName}</h3>
+                                                <span className="text-[8px] md:text-xs font-semibold text-slate-500 bg-white px-1.5 py-0.5 md:px-2 md:py-1 rounded border border-slate-200 shrink-0 ml-1">
                                                     {monthData.year}
                                                 </span>
                                             </div>
                                             
-                                            <div className="p-4 flex-1 flex flex-col justify-center">
-                                                <div className="flex h-16 w-full rounded-lg overflow-hidden border border-slate-200 shadow-inner">
+                                            <div className="p-1 md:p-4 flex-1 flex flex-col justify-center">
+                                                <div className="flex h-8 md:h-16 w-full rounded md:rounded-lg overflow-hidden border border-slate-200 shadow-inner">
                                                     {monthData.weeks.map((week, wIdx) => {
                                                         const colorClass = colorMap[week.rotation] || 'bg-slate-100 text-slate-800';
                                                         return (
@@ -748,16 +794,16 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                                                 key={wIdx} 
                                                                 onClick={() => handleTileClick(selectedResidents[0], week)}
                                                                 title={`${data.rotKey[week.rotation] || week.rotation} (Week of ${week.date})`}
-                                                                className={`flex-1 flex flex-col items-center justify-center border-r last:border-r-0 border-white/40 transition-all hover:opacity-90 hover:scale-105 cursor-pointer ${colorClass}`}
+                                                                className={`flex-1 flex flex-col items-center justify-center border-r last:border-r-0 border-white/40 transition-all hover:opacity-90 hover:scale-[1.1] cursor-pointer ${colorClass}`}
                                                             >
-                                                                <span className="font-extrabold text-sm md:text-base tracking-tight">{week.rotation}</span>
+                                                                <span className="font-extrabold text-[7px] md:text-base tracking-tighter md:tracking-tight">{week.rotation}</span>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
-                                                <div className="flex mt-2 px-1">
+                                                <div className="flex mt-1 md:mt-2 px-px md:px-1">
                                                     {monthData.weeks.map((week, wIdx) => (
-                                                        <div key={wIdx} className="flex-1 text-center text-[10px] text-slate-400 font-medium">
+                                                        <div key={wIdx} className="flex-1 text-center text-[5px] md:text-[10px] text-slate-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                                                             {week.date}
                                                         </div>
                                                     ))}
@@ -767,38 +813,51 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                     ))}
                                 </div>
                             ) : (
-                                <div className="bg-white p-6 md:p-8 rounded-2xl shadow-xl overflow-x-auto mb-8">
-                                    <div className="min-w-[1000px]">
-                                        <div className="flex w-full mb-4 ml-[180px]" style={{ width: 'calc(100% - 180px)' }}>
-                                            {monthSpans.map((ms, i) => (
-                                                <div key={i} style={{ flex: ms.count }} className="text-center text-xs font-bold text-slate-400 uppercase tracking-wider border-l-2 border-slate-100 first:border-l-0 pb-2">
-                                                    {monthNames[ms.monthNum] || ms.monthNum}
+                                <div className="bg-white rounded-xl md:rounded-2xl shadow-xl overflow-hidden mb-8 border border-slate-200 w-full flex flex-col">
+                                    <div className="bg-slate-100 border-b border-slate-200 px-3 md:px-4 py-2 flex items-center justify-between no-print shrink-0">
+                                        <span className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">Timeline Controls</span>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider sm:hidden">Zoom</span>
+                                        <div className="flex items-center gap-1.5 md:gap-2">
+                                            <button onClick={() => setZoom(Math.max(1, zoom - 0.5))} className="p-1.5 md:p-2 bg-white rounded-md shadow-sm border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors active:scale-95"><ZoomOut size={16} /></button>
+                                            <span className="text-[10px] md:text-xs font-bold w-8 md:w-10 text-center text-slate-700 bg-white py-1 md:py-1.5 rounded-md border border-slate-200">{zoom * 100}%</span>
+                                            <button onClick={() => setZoom(Math.min(5, zoom + 0.5))} className="p-1.5 md:p-2 bg-white rounded-md shadow-sm border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors active:scale-95"><ZoomIn size={16} /></button>
+                                        </div>
+                                    </div>
+                                    <div className="flex w-full overflow-x-auto relative hide-scrollbar">
+                                        {/* Sticky Names Column */}
+                                        <div className="sticky left-0 z-20 w-[90px] md:w-[164px] bg-white border-r border-slate-200 shadow-[2px_0_10px_rgba(0,0,0,0.08)] shrink-0 flex flex-col pb-2">
+                                            <div className="h-8 md:h-10 bg-slate-50 border-b border-slate-200 shrink-0"></div>
+                                            {selectedResidents.map((res, idx) => (
+                                                <div key={idx} className="h-10 md:h-14 flex flex-col justify-center px-2 md:px-4 border-b border-slate-100 last:border-0 bg-white shrink-0 overflow-hidden group hover:bg-slate-50">
+                                                    <h3 className="font-bold text-[9px] md:text-sm text-slate-800 leading-tight truncate w-full group-hover:text-[#9e152b] transition-colors" title={res.name}>{res.name.split(',')[0]}</h3>
+                                                    <p className="text-[7px] md:text-[11px] font-medium text-slate-400 mt-0.5 truncate w-full">{res.pgy}</p>
                                                 </div>
                                             ))}
                                         </div>
-
-                                        <div className="flex flex-col gap-5">
-                                            {selectedResidents.map((res, idx) => (
-                                                <div key={idx} className="flex items-center gap-4 border-b border-slate-50 pb-5 last:border-b-0 last:pb-0">
-                                                    <div className="w-[164px] shrink-0">
-                                                        <h3 className="font-bold text-slate-800 leading-tight truncate" title={res.name}>{res.name.split(',')[0]}</h3>
-                                                        <p className="text-[11px] font-medium text-slate-400 mt-0.5">{res.pgy}</p>
+                                        {/* Scrollable Timeline */}
+                                        <div className="flex flex-col flex-1 pb-2" style={{ minWidth: `${100 * zoom}%` }}>
+                                            <div className="flex h-8 md:h-10 border-b border-slate-200 bg-slate-50 shrink-0">
+                                                {monthSpans.map((ms, i) => (
+                                                    <div key={i} style={{ flex: ms.count }} className="text-center text-[8px] md:text-xs font-bold text-slate-500 uppercase tracking-wider border-l border-slate-200/50 flex items-center justify-center first:border-l-0 overflow-hidden px-1">
+                                                        <span className="truncate">{monthNames[ms.monthNum]}</span>
                                                     </div>
-                                                    <div className="flex-1 flex h-10 rounded-md overflow-hidden border border-slate-200 shadow-sm">
-                                                        {res.schedule.map((week, wIdx) => {
-                                                            const colorClass = colorMap[week.rotation] || 'bg-slate-100 text-slate-800';
-                                                            return (
-                                                                <div 
-                                                                    key={wIdx} 
-                                                                    onClick={() => handleTileClick(res, week)}
-                                                                    title={`${data.rotKey[week.rotation] || week.rotation} (Week of ${week.date})`}
-                                                                    className={`flex-1 flex flex-col items-center justify-center border-r last:border-r-0 border-white/40 transition-opacity hover:opacity-90 hover:scale-[1.15] cursor-pointer ${colorClass}`}
-                                                                >
-                                                                    <span className="font-bold text-[9px] sm:text-[10px] tracking-tighter w-full text-center truncate">{week.rotation}</span>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
+                                                ))}
+                                            </div>
+                                            {selectedResidents.map((res, rIdx) => (
+                                                <div key={rIdx} className="flex h-10 md:h-14 border-b border-slate-100 last:border-0 w-full shrink-0">
+                                                    {res.schedule.map((week, wIdx) => {
+                                                        const colorClass = colorMap[week.rotation] || 'bg-slate-100 text-slate-800';
+                                                        return (
+                                                            <div 
+                                                                key={wIdx} 
+                                                                onClick={() => handleTileClick(res, week)}
+                                                                title={`${data.rotKey[week.rotation] || week.rotation} (Week of ${week.date})`}
+                                                                className={`flex-1 flex flex-col items-center justify-center border-r border-white/40 cursor-pointer transition-all hover:opacity-80 hover:z-10 hover:shadow-lg ${colorClass} overflow-hidden`}
+                                                            >
+                                                                <span className="font-extrabold text-[7px] md:text-[10px] tracking-tighter truncate w-full text-center px-px">{week.rotation}</span>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
                                             ))}
                                         </div>
@@ -806,17 +865,17 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                 </div>
                             )}
 
-                            <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-                                <h3 className="text-sm font-bold text-slate-700 flex items-center mb-3">
-                                    <Info size={16} className="mr-2" /> Shared Rotation Key
+                            <div className="bg-white p-4 md:p-5 rounded-xl border border-slate-200 shadow-sm mb-4 w-full">
+                                <h3 className="text-xs md:text-sm font-bold text-slate-700 flex items-center mb-3">
+                                    <Info size={16} className="mr-2 shrink-0" /> Shared Rotation Key
                                 </h3>
-                                <div className="flex flex-wrap gap-3">
+                                <div className="flex flex-wrap gap-2 md:gap-3">
                                     {allRotCodes.map((code) => {
                                         const colorClass = colorMap[code] || 'bg-gray-100 text-gray-800 border-gray-300';
                                         return (
-                                            <div key={code} className={`flex items-center px-3 py-1.5 rounded-lg border text-sm font-medium ${colorClass}`}>
-                                                <span className="font-bold mr-2">{code}</span>
-                                                <span className="opacity-80 font-normal">
+                                            <div key={code} className={`flex items-center px-2 py-1 md:px-3 md:py-1.5 rounded-md md:rounded-lg border text-[10px] md:text-sm font-medium ${colorClass}`}>
+                                                <span className="font-bold mr-1.5 md:mr-2">{code}</span>
+                                                <span className="opacity-80 font-normal whitespace-nowrap">
                                                     {data.rotKey[code] || 'Unknown'}
                                                 </span>
                                             </div>
@@ -828,25 +887,29 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
 
                         {}
                         {overlapModal && (
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 no-print">
-                                <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-7 relative transform transition-all border border-slate-100">
-                                    <button onClick={() => setOverlapModal(null)} className="absolute top-5 right-5 text-slate-400 hover:text-[#9e152b] bg-slate-50 hover:bg-red-50 p-2 rounded-full transition-colors">
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 no-print">
+                                <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-5 md:p-7 relative transform transition-all border border-slate-100 flex flex-col max-h-[90vh]">
+                                    <button onClick={() => setOverlapModal(null)} className="absolute top-4 right-4 md:top-5 md:right-5 text-slate-400 hover:text-[#9e152b] bg-slate-50 hover:bg-red-50 p-2 rounded-full transition-colors z-10 shrink-0">
                                         <XIcon size={20} />
                                     </button>
                                     
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <div className={`w-4 h-4 rounded-full shadow-inner ${colorMap[overlapModal.week.rotation]?.split(' ')[0] || 'bg-slate-300'}`}></div>
-                                        <h3 className="text-2xl font-bold text-slate-800 tracking-tight">{data.rotKey[overlapModal.week.rotation] || overlapModal.week.rotation}</h3>
+                                    <div className="shrink-0 mb-4 pr-10">
+                                        <div className="flex items-center gap-2 md:gap-3 mb-1">
+                                            <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full shadow-inner shrink-0 ${colorMap[overlapModal.week.rotation]?.split(' ')[0] || 'bg-slate-300'}`}></div>
+                                            <h3 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight leading-tight">{data.rotKey[overlapModal.week.rotation] || overlapModal.week.rotation}</h3>
+                                        </div>
+                                        <p className="text-slate-500 text-xs md:text-sm font-medium pl-5 md:pl-7">
+                                            Week of {overlapModal.week.date}
+                                        </p>
                                     </div>
-                                    <p className="text-slate-500 mb-6 text-sm font-medium pl-7">
-                                        Week of {overlapModal.week.date}
-                                    </p>
                                     
-                                    <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/60 max-h-[300px] overflow-y-auto">
+                                    <div className="bg-slate-50 rounded-2xl p-4 md:p-5 border border-slate-200/60 overflow-y-auto flex-1 min-h-0 hide-scrollbar shadow-inner">
                                         {overlapModal.overlaps.length > 0 ? (
                                             <div>
-                                                <p className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-3 ml-1">Overlaps With</p>
-                                                <div className="flex flex-col gap-2">
+                                                <p className="text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-wider mb-3 ml-1 flex items-center gap-2">
+                                                    Overlaps With <span className="bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full">{overlapModal.overlaps.length}</span>
+                                                </p>
+                                                <div className="flex flex-col gap-2 md:gap-3">
                                                     {overlapModal.overlaps.map((r, i) => {
                                                         const cleanPgy = r.pgy.replace('s', '');
                                                         const cleanName = r.name.includes(',') ? `${r.name.split(',')[1].trim()} ${r.name.split(',')[0].trim()}` : r.name;
@@ -855,24 +918,24 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                                         const tileColorClass = colorMap[overlapRotation] || 'bg-slate-100 text-slate-800';
                                                         
                                                         return (
-                                                            <div key={i} className="flex items-center gap-3 text-slate-700 bg-white border border-slate-200 px-4 py-3 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                                                                <div className={`w-9 h-9 rounded-md flex items-center justify-center shrink-0 border border-white/40 shadow-inner ${tileColorClass}`}>
-                                                                    <span className="font-extrabold text-[10px] tracking-tighter">{overlapRotation}</span>
+                                                            <div key={i} className="flex items-center gap-2 md:gap-3 text-slate-700 bg-white border border-slate-200 px-3 py-2 md:px-4 md:py-3 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                                                <div className={`w-8 h-8 md:w-9 md:h-9 rounded-md flex items-center justify-center shrink-0 border border-white/40 shadow-inner ${tileColorClass}`}>
+                                                                    <span className="font-extrabold text-[8px] md:text-[10px] tracking-tighter">{overlapRotation}</span>
                                                                 </div>
-                                                                <span className="font-extrabold text-[#9e152b] text-[11px] px-2 py-1 bg-[#9e152b]/10 rounded-md tracking-wide">{cleanPgy}</span>
-                                                                <span className="font-semibold text-[15px]">{cleanName}</span>
+                                                                <span className="font-extrabold text-[#9e152b] text-[9px] md:text-[11px] px-1.5 py-0.5 md:px-2 md:py-1 bg-[#9e152b]/10 rounded-md tracking-wide shrink-0">{cleanPgy}</span>
+                                                                <span className="font-semibold text-sm md:text-[15px] truncate">{cleanName}</span>
                                                             </div>
                                                         )
                                                     })}
                                                 </div>
                                             </div>
                                         ) : (
-                                            <div className="text-center py-8">
-                                                <div className="w-12 h-12 bg-slate-200 rounded-full flex items-center justify-center mx-auto mb-3">
-                                                    <Info size={24} className="text-slate-400" />
+                                            <div className="text-center py-6 md:py-8 flex flex-col items-center justify-center h-full">
+                                                <div className="w-10 h-10 md:w-12 md:h-12 bg-slate-200 rounded-full flex items-center justify-center mb-3 shadow-inner">
+                                                    <Info size={20} className="text-slate-400" />
                                                 </div>
-                                                <p className="text-slate-600 font-medium">No overlaps found.</p>
-                                                <p className="text-slate-400 text-sm mt-1">This resident is solo on this rotation for this week.</p>
+                                                <p className="text-slate-600 font-bold text-sm md:text-base">No overlaps found.</p>
+                                                <p className="text-slate-400 text-xs md:text-sm mt-1 max-w-[200px]">This resident is solo on this rotation for this week.</p>
                                             </div>
                                         )}
                                     </div>
@@ -880,8 +943,8 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                             </div>
                         )}
 
-                        <div className="mt-16 mb-2 text-center w-full no-print">
-                            <p className="text-white/60 text-xs font-medium tracking-widest">-ZS 2026</p>
+                        <div className="mt-8 mb-2 text-center w-full no-print">
+                            <p className="text-white/60 text-[10px] md:text-xs font-medium tracking-widest">-ZS 2026</p>
                         </div>
                     </div>
                 );
