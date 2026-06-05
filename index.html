@@ -28,7 +28,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useMemo } = React;
+        const { useState, useRef, useMemo, useEffect } = React;
 
         const ChevronLeft = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>
@@ -318,9 +318,128 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             return { residentsByPgy, dates, rotKey };
         };
 
+        // --- Pin Pad Component ---
+        const PinPadScreen = ({ onSuccess }) => {
+            const [input, setInput] = useState("");
+            const [attempts, setAttempts] = useState(0);
+            const [lockoutUntil, setLockoutUntil] = useState(() => {
+                const saved = localStorage.getItem('scheduleLockout');
+                return saved ? parseInt(saved, 10) : 0;
+            });
+            const [timeLeft, setTimeLeft] = useState(0);
+            const [statusLight, setStatusLight] = useState('bg-red-900');
+
+            useEffect(() => {
+                if (lockoutUntil > Date.now()) {
+                    const updateTimer = () => {
+                        const remaining = lockoutUntil - Date.now();
+                        if (remaining <= 0) {
+                            setLockoutUntil(0);
+                            setAttempts(0);
+                            localStorage.removeItem('scheduleLockout');
+                        } else {
+                            setTimeLeft(Math.ceil(remaining / 1000));
+                        }
+                    };
+                    updateTimer();
+                    const interval = setInterval(updateTimer, 1000);
+                    return () => clearInterval(interval);
+                }
+            }, [lockoutUntil]);
+
+            const handlePress = (num) => {
+                if (lockoutUntil > Date.now() || input.length >= 3) return;
+                
+                const newInput = input + num;
+                setInput(newInput);
+
+                if (newInput.length === 3) {
+                    if (newInput === "343") {
+                        setStatusLight('bg-green-400 shadow-[0_0_15px_#4ade80]');
+                        setTimeout(() => onSuccess(), 600);
+                    } else {
+                        setStatusLight('bg-red-500 shadow-[0_0_15px_#ef4444]');
+                        const newAttempts = attempts + 1;
+                        setAttempts(newAttempts);
+                        
+                        if (newAttempts >= 3) {
+                            const lockout = Date.now() + 5 * 60 * 1000; // 5 minutes
+                            setLockoutUntil(lockout);
+                            localStorage.setItem('scheduleLockout', lockout.toString());
+                        }
+                        setTimeout(() => {
+                            setInput("");
+                            setStatusLight('bg-red-900');
+                        }, 800);
+                    }
+                }
+            };
+
+            const renderButton = (num) => (
+                <button
+                    key={num}
+                    onClick={() => handlePress(num.toString())}
+                    className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full bg-gradient-to-b from-slate-200 to-slate-400 border border-slate-500 shadow-[0_5px_10px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(255,255,255,0.8)] text-slate-800 font-bold text-2xl active:shadow-[inset_0_4px_6px_rgba(0,0,0,0.6)] active:translate-y-1 transition-all"
+                >
+                    {num}
+                </button>
+            );
+
+            if (lockoutUntil > Date.now()) {
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                return (
+                    <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6">
+                        <div className="bg-gradient-to-b from-gray-200 to-gray-400 p-8 rounded-2xl shadow-2xl border-4 border-gray-500 max-w-sm w-full text-center">
+                            <div className="bg-black/90 p-6 rounded-xl border-2 border-gray-600 shadow-inner">
+                                <h2 className="text-xl font-bold text-red-500 mb-2 font-mono">SYSTEM LOCKED</h2>
+                                <p className="text-gray-300 font-mono text-sm mb-4">Too many incorrect attempts.</p>
+                                <div className="text-4xl font-mono text-red-400 font-bold tracking-widest">
+                                    {minutes}:{seconds.toString().padStart(2, '0')}
+                                </div>
+                                <p className="text-gray-500 font-mono text-xs mt-6">Try again in 5 minutes</p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6">
+                    <div className="bg-gradient-to-br from-gray-600 to-gray-800 p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_2px_5px_rgba(255,255,255,0.3)] border border-gray-500 max-w-sm w-full relative">
+                        {/* Metal texture overlay */}
+                        <div className="absolute inset-0 opacity-10 rounded-3xl bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.1)_2px,rgba(255,255,255,0.1)_4px)] pointer-events-none"></div>
+                        
+                        <div className="relative z-10">
+                            {/* Top Indicator */}
+                            <div className="flex justify-center mb-6">
+                                <div className={`w-4 h-4 rounded-full border-2 border-black/80 transition-all duration-300 ${statusLight}`}></div>
+                            </div>
+
+                            {/* Screen */}
+                            <div className="bg-black p-4 rounded-xl border-4 border-gray-700 shadow-[inset_0_5px_15px_rgba(0,0,0,1)] mb-8 h-16 flex items-center justify-center">
+                                <div className="text-green-500 text-4xl font-mono tracking-[0.3em] font-bold">
+                                    {input.split('').map(() => '*').join('')}
+                                </div>
+                            </div>
+
+                            {/* Pin Pad Grid */}
+                            <div className="grid grid-cols-3 gap-y-6 justify-items-center">
+                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(renderButton)}
+                                <div className="col-start-2">
+                                    {renderButton(0)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
         function App() {
             const initialData = useMemo(() => parseCSVData(EMBEDDED_CSV_DATA), []);
 
+            const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [appState, setAppState] = useState('SELECT'); // SELECT, VIEW
             const [data, setData] = useState(initialData);
             
@@ -401,40 +520,9 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 return monthGroups;
             };
 
-            const toggleResidentSelection = (resident) => {
-                setSelectedResidents(prev => {
-                    if (prev.some(r => r.name === resident.name)) {
-                        return prev.filter(r => r.name !== resident.name);
-                    } else {
-                        return [...prev, resident];
-                    }
-                });
-            };
-
-            // Handling the overlaps feature
-            const handleTileClick = (resident, week) => {
-                const cGroup = ['C1', 'C2', 'C3', 'C4', 'C5', '1N', '2N', '3N', '4N', '5N', 'IN', '1n', 'c1'];
-                const isMatch = (rot1, rot2) => {
-                    if (cGroup.includes(rot1) && cGroup.includes(rot2)) return true;
-                    return rot1 === rot2;
-                };
-
-                const overlaps = [];
-                Object.values(data.residentsByPgy).flat().forEach(otherRes => {
-                    if (otherRes.name === resident.name) return; // Don't match with self
-                    
-                    const otherWeek = otherRes.schedule.find(w => w.date === week.date);
-                    if (otherWeek && isMatch(otherWeek.rotation, week.rotation)) {
-                        overlaps.push(otherRes);
-                    }
-                });
-
-                setOverlapModal({
-                    resident,
-                    week,
-                    overlaps
-                });
-            };
+            if (!isAuthenticated) {
+                return <PinPadScreen onSuccess={() => setIsAuthenticated(true)} />;
+            }
 
             if (!data) {
                 return (
