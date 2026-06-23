@@ -336,9 +336,15 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
         const PinPadScreen = ({ onSuccess }) => {
             const [input, setInput] = useState("");
             const [attempts, setAttempts] = useState(0);
+            
+            // Safe localStorage fetch
             const [lockoutUntil, setLockoutUntil] = useState(() => {
-                const saved = localStorage.getItem('scheduleLockout');
-                return saved ? parseInt(saved, 10) : 0;
+                try {
+                    const saved = localStorage.getItem('scheduleLockout');
+                    return saved ? parseInt(saved, 10) : 0;
+                } catch (e) {
+                    return 0; // Fallback if browser blocks localStorage
+                }
             });
             const [timeLeft, setTimeLeft] = useState(0);
             const [statusLight, setStatusLight] = useState('bg-red-900');
@@ -350,7 +356,9 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                         if (remaining <= 0) {
                             setLockoutUntil(0);
                             setAttempts(0);
-                            localStorage.removeItem('scheduleLockout');
+                            try {
+                                localStorage.removeItem('scheduleLockout');
+                            } catch (e) {}
                         } else {
                             setTimeLeft(Math.ceil(remaining / 1000));
                         }
@@ -379,7 +387,9 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                         if (newAttempts >= 3) {
                             const lockout = Date.now() + 5 * 60 * 1000; // 5 minutes
                             setLockoutUntil(lockout);
-                            localStorage.setItem('scheduleLockout', lockout.toString());
+                            try {
+                                localStorage.setItem('scheduleLockout', lockout.toString());
+                            } catch(e) {}
                         }
                         setTimeout(() => {
                             setInput("");
@@ -495,14 +505,17 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                     }
                 });
 
-                Object.values(initialData.residentsByPgy).flat().forEach(resident => {
-                    resident.schedule.forEach(week => {
-                        if (!newColorMap[week.rotation]) {
-                            newColorMap[week.rotation] = PALETTE[colorIdx % PALETTE.length];
-                            colorIdx++;
-                        }
+                // Safe fallback for .flat() compatibility on older iOS devices
+                Object.values(initialData.residentsByPgy)
+                    .reduce((acc, val) => acc.concat(val), [])
+                    .forEach(resident => {
+                        resident.schedule.forEach(week => {
+                            if (!newColorMap[week.rotation]) {
+                                newColorMap[week.rotation] = PALETTE[colorIdx % PALETTE.length];
+                                colorIdx++;
+                            }
+                        });
                     });
-                });
                 return newColorMap;
             });
 
@@ -551,16 +564,20 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 const isNightFloat = ["C1", "C2", "C3", "C4", "C5"].includes(rotation) || rotation.toUpperCase() === "1N";
 
                 const overlaps = [];
-                Object.values(data.residentsByPgy).flat().forEach(r => {
-                    if (r.name === resident.name) return;
-                    const rWeek = r.schedule.find(w => w.date === date);
-                    if (rWeek) {
-                        const checkIsNightFloat = ["C1", "C2", "C3", "C4", "C5"].includes(rWeek.rotation) || rWeek.rotation.toUpperCase() === "1N";
-                        if (rWeek.rotation === rotation || (isNightFloat && checkIsNightFloat)) {
-                            overlaps.push(r);
+                
+                // Safe fallback for .flat() compatibility
+                Object.values(data.residentsByPgy)
+                    .reduce((acc, val) => acc.concat(val), [])
+                    .forEach(r => {
+                        if (r.name === resident.name) return;
+                        const rWeek = r.schedule.find(w => w.date === date);
+                        if (rWeek) {
+                            const checkIsNightFloat = ["C1", "C2", "C3", "C4", "C5"].includes(rWeek.rotation) || rWeek.rotation.toUpperCase() === "1N";
+                            if (rWeek.rotation === rotation || (isNightFloat && checkIsNightFloat)) {
+                                overlaps.push(r);
+                            }
                         }
-                    }
-                });
+                    });
 
                 setOverlapModal({ resident, week, overlaps });
             };
@@ -711,7 +728,11 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 });
                 monthSpans.push({ monthNum: currentMonthNum, count });
                 const monthNames = { "01":"Jan", "02":"Feb", "03":"Mar", "04":"Apr", "05":"May", "06":"Jun", "07":"Jul", "08":"Aug", "09":"Sep", "10":"Oct", "11":"Nov", "12":"Dec" };
-                const allRotCodes = [...new Set(selectedResidents.flatMap(r => r.schedule.map(s => s.rotation)))];
+                
+                // Safe fallback for .flatMap() compatibility
+                const allRotCodes = [...new Set(
+                    selectedResidents.reduce((acc, r) => acc.concat(r.schedule.map(s => s.rotation)), [])
+                )];
 
                 return (
                     <div className="min-h-screen bg-[#9e152b] p-4 md:p-8 flex flex-col justify-between w-full">
@@ -885,7 +906,6 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                             </div>
                         </div>
 
-                        {}
                         {overlapModal && (
                             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 no-print">
                                 <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-5 md:p-7 relative transform transition-all border border-slate-100 flex flex-col max-h-[90vh]">
