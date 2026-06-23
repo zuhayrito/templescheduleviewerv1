@@ -8,12 +8,12 @@
     <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM (Production versions) -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- React & ReactDOM (Pinned to stable v18.3.1 to prevent sudden CDN breaking changes) -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
     
-    <!-- Babel for compiling React JSX directly in the browser -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <!-- Babel (Pinned to stable v7.24.7 to prevent import errors from random CDN updates) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
 
     <style>
         /* Optional: Adding a print media query to clean up the printed page */
@@ -37,7 +37,7 @@
     <!-- Fallback error catching in case external scripts are blocked by a network firewall -->
     <div id="fallback-error" style="color: #ffcccc; padding: 20px; font-family: monospace; display: none;">
         <h2 style="font-weight: bold; font-size: 1.25rem; margin-bottom: 10px;">Network / Script Error</h2>
-        <p>The application failed to load. Your network or firewall might be blocking unpkg.com or cdn.tailwindcss.com.</p>
+        <p>The application failed to load. Your network or firewall might be blocking the external script servers.</p>
         <div id="fallback-details" style="margin-top: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;"></div>
     </div>
 
@@ -56,7 +56,7 @@
     <div id="root" class="w-full">
         <div style="color: white; padding: 40px; text-align: center; font-family: sans-serif; opacity: 0.8;">
             <p style="font-size: 1.25rem; font-weight: bold;">Loading Schedule Viewer...</p>
-            <p style="font-size: 0.875rem; margin-top: 10px;">If this screen does not disappear within a few seconds, please check your internet connection or ensure unpkg.com is not blocked on your network.</p>
+            <p style="font-size: 0.875rem; margin-top: 10px;">If this screen does not disappear within a few seconds, please check your internet connection.</p>
         </div>
     </div>
 
@@ -401,7 +401,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             const [selectedResidents, setSelectedResidents] = useState([]);
             const [overlapModal, setOverlapModal] = useState(null);
             
-            // Check orientation for prompt
+            // Check orientation for prompt safely
             const [isPortrait, setIsPortrait] = useState(false);
             useEffect(() => {
                 if (typeof window !== 'undefined') {
@@ -443,7 +443,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                     }
                 });
 
-                // Safe fallback for .flat() compatibility on older iOS devices
+                // Safe fallback for old browsers without array.flat()
                 Object.values(initialData.residentsByPgy)
                     .reduce((acc, val) => acc.concat(val), [])
                     .forEach(resident => {
@@ -503,7 +503,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
 
                 const overlaps = [];
                 
-                // Safe fallback for .flat() compatibility
+                // Safe fallback for old browsers without array.flat()
                 Object.values(data.residentsByPgy)
                     .reduce((acc, val) => acc.concat(val), [])
                     .forEach(r => {
@@ -663,7 +663,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                 monthSpans.push({ monthNum: currentMonthNum, count });
                 const monthNames = { "01":"Jan", "02":"Feb", "03":"Mar", "04":"Apr", "05":"May", "06":"Jun", "07":"Jul", "08":"Aug", "09":"Sep", "10":"Oct", "11":"Nov", "12":"Dec" };
                 
-                // Safe fallback for .flatMap() compatibility
+                // Safe fallback for old browsers without array.flatMap()
                 const allRotCodes = [...new Set(
                     selectedResidents.reduce((acc, r) => acc.concat(r.schedule.map(s => s.rotation)), [])
                 )];
