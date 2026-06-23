@@ -33,12 +33,37 @@
     </style>
 </head>
 <body class="bg-[#9e152b] overflow-x-hidden w-full">
-    <div id="root" class="w-full"></div>
+    
+    <!-- Fallback error catching in case external scripts are blocked by a network firewall -->
+    <div id="fallback-error" style="color: #ffcccc; padding: 20px; font-family: monospace; display: none;">
+        <h2 style="font-weight: bold; font-size: 1.25rem; margin-bottom: 10px;">Network / Script Error</h2>
+        <p>The application failed to load. Your network or firewall might be blocking unpkg.com or cdn.tailwindcss.com.</p>
+        <div id="fallback-details" style="margin-top: 10px; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px;"></div>
+    </div>
+
+    <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            document.getElementById('root').style.display = 'none';
+            var fallback = document.getElementById('fallback-error');
+            var details = document.getElementById('fallback-details');
+            fallback.style.display = 'block';
+            details.innerHTML += '<p style="margin: 0;">> ' + msg + ' (Line: ' + lineNo + ')</p>';
+            return false;
+        };
+    </script>
+
+    <!-- App Root -->
+    <div id="root" class="w-full">
+        <div style="color: white; padding: 40px; text-align: center; font-family: sans-serif; opacity: 0.8;">
+            <p style="font-size: 1.25rem; font-weight: bold;">Loading Schedule Viewer...</p>
+            <p style="font-size: 0.875rem; margin-top: 10px;">If this screen does not disappear within a few seconds, please check your internet connection or ensure unpkg.com is not blocked on your network.</p>
+        </div>
+    </div>
 
     <script type="text/babel">
         const { useState, useRef, useMemo, useEffect } = React;
 
-        // --- Master Error Boundary to catch silent crashes ---
+        // --- Master Error Boundary to catch silent React crashes ---
         class ErrorBoundary extends React.Component {
             constructor(props) {
                 super(props);
@@ -56,7 +81,7 @@
                         <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6 w-full text-white">
                             <div className="bg-black/90 p-8 rounded-2xl shadow-xl max-w-lg w-full font-mono border-2 border-red-500">
                                 <h2 className="text-xl font-bold text-red-500 mb-4">CRITICAL ERROR</h2>
-                                <p className="text-sm mb-4">The application failed to load. Please check the error details below:</p>
+                                <p className="text-sm mb-4">The application crashed while loading data. Please check the error details below:</p>
                                 <div className="bg-red-950/50 p-4 rounded overflow-auto max-h-64 text-xs text-red-200">
                                     <p className="font-bold">{this.state.error && this.state.error.toString()}</p>
                                     <pre className="mt-2 opacity-70 whitespace-pre-wrap">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
@@ -68,30 +93,6 @@
                 return this.props.children;
             }
         }
-
-        // --- Safe Local Storage Utilities ---
-        const safeGetStorage = (key) => {
-            try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    return window.localStorage.getItem(key);
-                }
-            } catch(e) {}
-            return null;
-        };
-        const safeSetStorage = (key, value) => {
-            try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    window.localStorage.setItem(key, value);
-                }
-            } catch(e) {}
-        };
-        const safeRemoveStorage = (key) => {
-            try {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    window.localStorage.removeItem(key);
-                }
-            } catch(e) {}
-        };
 
         // --- SVG Icons ---
         const ChevronLeft = ({ size = 24, className = "" }) => (
@@ -388,122 +389,9 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             return { residentsByPgy, dates, rotKey };
         };
 
-        const PinPadScreen = ({ onSuccess }) => {
-            const [input, setInput] = useState("");
-            const [attempts, setAttempts] = useState(0);
-            
-            const [lockoutUntil, setLockoutUntil] = useState(() => {
-                const saved = safeGetStorage('scheduleLockout');
-                return saved ? parseInt(saved, 10) : 0;
-            });
-            const [timeLeft, setTimeLeft] = useState(0);
-            const [statusLight, setStatusLight] = useState('bg-red-900');
-
-            useEffect(() => {
-                if (lockoutUntil > Date.now()) {
-                    const updateTimer = () => {
-                        const remaining = lockoutUntil - Date.now();
-                        if (remaining <= 0) {
-                            setLockoutUntil(0);
-                            setAttempts(0);
-                            safeRemoveStorage('scheduleLockout');
-                        } else {
-                            setTimeLeft(Math.ceil(remaining / 1000));
-                        }
-                    };
-                    updateTimer();
-                    const interval = setInterval(updateTimer, 1000);
-                    return () => clearInterval(interval);
-                }
-            }, [lockoutUntil]);
-
-            const handlePress = (num) => {
-                if (lockoutUntil > Date.now() || input.length >= 3) return;
-                
-                const newInput = input + num;
-                setInput(newInput);
-
-                if (newInput.length === 3) {
-                    if (newInput === "343") {
-                        setStatusLight('bg-green-400 shadow-[0_0_15px_#4ade80]');
-                        setTimeout(() => onSuccess(), 600);
-                    } else {
-                        setStatusLight('bg-red-500 shadow-[0_0_15px_#ef4444]');
-                        const newAttempts = attempts + 1;
-                        setAttempts(newAttempts);
-                        
-                        if (newAttempts >= 3) {
-                            const lockout = Date.now() + 5 * 60 * 1000; // 5 minutes
-                            setLockoutUntil(lockout);
-                            safeSetStorage('scheduleLockout', lockout.toString());
-                        }
-                        setTimeout(() => {
-                            setInput("");
-                            setStatusLight('bg-red-900');
-                        }, 800);
-                    }
-                }
-            };
-
-            const renderButton = (num) => (
-                <button
-                    key={num}
-                    onClick={() => handlePress(num.toString())}
-                    className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center rounded-full bg-gradient-to-b from-slate-200 to-slate-400 border border-slate-500 shadow-[0_5px_10px_rgba(0,0,0,0.5),inset_0_2px_4px_rgba(255,255,255,0.8)] text-slate-800 font-bold text-2xl active:shadow-[inset_0_4px_6px_rgba(0,0,0,0.6)] active:translate-y-1 transition-all"
-                >
-                    {num}
-                </button>
-            );
-
-            if (lockoutUntil > Date.now()) {
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                const formattedSeconds = seconds < 10 ? '0' + seconds : seconds.toString();
-                return (
-                    <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6">
-                        <div className="bg-gradient-to-b from-gray-200 to-gray-400 p-8 rounded-2xl shadow-2xl border-4 border-gray-500 max-w-sm w-full text-center">
-                            <div className="bg-black/90 p-6 rounded-xl border-2 border-gray-600 shadow-inner">
-                                <h2 className="text-xl font-bold text-red-500 mb-2 font-mono">SYSTEM LOCKED</h2>
-                                <p className="text-gray-300 font-mono text-sm mb-4">Too many incorrect attempts.</p>
-                                <div className="text-4xl font-mono text-red-400 font-bold tracking-widest">
-                                    {minutes}:{formattedSeconds}
-                                </div>
-                                <p className="text-gray-500 font-mono text-xs mt-6">Try again in 5 minutes</p>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
-
-            return (
-                <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6 w-full">
-                    <div className="bg-gradient-to-br from-gray-600 to-gray-800 p-8 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7),inset_0_2px_5px_rgba(255,255,255,0.3)] border border-gray-500 max-w-sm w-full relative">
-                        <div className="absolute inset-0 opacity-10 rounded-3xl bg-[repeating-linear-gradient(45deg,transparent,transparent_2px,rgba(255,255,255,0.1)_2px,rgba(255,255,255,0.1)_4px)] pointer-events-none"></div>
-                        <div className="relative z-10">
-                            <div className="flex justify-center mb-6">
-                                <div className={`w-4 h-4 rounded-full border-2 border-black/80 transition-all duration-300 ${statusLight}`}></div>
-                            </div>
-                            <div className="bg-black p-4 rounded-xl border-4 border-gray-700 shadow-[inset_0_5px_15px_rgba(0,0,0,1)] mb-8 h-16 flex items-center justify-center">
-                                <div className="text-green-500 text-4xl font-mono tracking-[0.3em] font-bold">
-                                    {input.split('').map(() => '*').join('')}
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-3 gap-y-6 justify-items-center">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(renderButton)}
-                                <div className="col-start-2">
-                                    {renderButton(0)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
         function App() {
             const initialData = useMemo(() => parseCSVData(EMBEDDED_CSV_DATA), []);
 
-            const [isAuthenticated, setIsAuthenticated] = useState(false);
             const [appState, setAppState] = useState('SELECT'); // SELECT, VIEW
             const [viewMode, setViewMode] = useState('GRID'); // GRID, TIMELINE
             const [zoom, setZoom] = useState(1);
@@ -638,10 +526,6 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                     setViewMode('TIMELINE');
                 }
             };
-
-            if (!isAuthenticated) {
-                return <PinPadScreen onSuccess={() => setIsAuthenticated(true)} />;
-            }
 
             if (!data) {
                 return (
