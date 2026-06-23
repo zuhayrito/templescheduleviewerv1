@@ -38,6 +38,61 @@
     <script type="text/babel">
         const { useState, useRef, useMemo, useEffect } = React;
 
+        // --- Master Error Boundary to catch silent crashes ---
+        class ErrorBoundary extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { hasError: false, error: null, errorInfo: null };
+            }
+            static getDerivedStateFromError(error) {
+                return { hasError: true, error };
+            }
+            componentDidCatch(error, errorInfo) {
+                this.setState({ errorInfo });
+            }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6 w-full text-white">
+                            <div className="bg-black/90 p-8 rounded-2xl shadow-xl max-w-lg w-full font-mono border-2 border-red-500">
+                                <h2 className="text-xl font-bold text-red-500 mb-4">CRITICAL ERROR</h2>
+                                <p className="text-sm mb-4">The application failed to load. Please check the error details below:</p>
+                                <div className="bg-red-950/50 p-4 rounded overflow-auto max-h-64 text-xs text-red-200">
+                                    <p className="font-bold">{this.state.error && this.state.error.toString()}</p>
+                                    <pre className="mt-2 opacity-70 whitespace-pre-wrap">{this.state.errorInfo && this.state.errorInfo.componentStack}</pre>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
+        // --- Safe Local Storage Utilities ---
+        const safeGetStorage = (key) => {
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    return window.localStorage.getItem(key);
+                }
+            } catch(e) {}
+            return null;
+        };
+        const safeSetStorage = (key, value) => {
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.setItem(key, value);
+                }
+            } catch(e) {}
+        };
+        const safeRemoveStorage = (key) => {
+            try {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    window.localStorage.removeItem(key);
+                }
+            } catch(e) {}
+        };
+
         // --- SVG Icons ---
         const ChevronLeft = ({ size = 24, className = "" }) => (
             <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="m15 18-6-6 6-6"/></svg>
@@ -337,14 +392,9 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             const [input, setInput] = useState("");
             const [attempts, setAttempts] = useState(0);
             
-            // Safe localStorage fetch
             const [lockoutUntil, setLockoutUntil] = useState(() => {
-                try {
-                    const saved = localStorage.getItem('scheduleLockout');
-                    return saved ? parseInt(saved, 10) : 0;
-                } catch (e) {
-                    return 0; // Fallback if browser blocks localStorage
-                }
+                const saved = safeGetStorage('scheduleLockout');
+                return saved ? parseInt(saved, 10) : 0;
             });
             const [timeLeft, setTimeLeft] = useState(0);
             const [statusLight, setStatusLight] = useState('bg-red-900');
@@ -356,9 +406,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                         if (remaining <= 0) {
                             setLockoutUntil(0);
                             setAttempts(0);
-                            try {
-                                localStorage.removeItem('scheduleLockout');
-                            } catch (e) {}
+                            safeRemoveStorage('scheduleLockout');
                         } else {
                             setTimeLeft(Math.ceil(remaining / 1000));
                         }
@@ -387,9 +435,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                         if (newAttempts >= 3) {
                             const lockout = Date.now() + 5 * 60 * 1000; // 5 minutes
                             setLockoutUntil(lockout);
-                            try {
-                                localStorage.setItem('scheduleLockout', lockout.toString());
-                            } catch(e) {}
+                            safeSetStorage('scheduleLockout', lockout.toString());
                         }
                         setTimeout(() => {
                             setInput("");
@@ -412,6 +458,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             if (lockoutUntil > Date.now()) {
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
+                const formattedSeconds = seconds < 10 ? '0' + seconds : seconds.toString();
                 return (
                     <div className="min-h-screen bg-[#9e152b] flex items-center justify-center p-6">
                         <div className="bg-gradient-to-b from-gray-200 to-gray-400 p-8 rounded-2xl shadow-2xl border-4 border-gray-500 max-w-sm w-full text-center">
@@ -419,7 +466,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                 <h2 className="text-xl font-bold text-red-500 mb-2 font-mono">SYSTEM LOCKED</h2>
                                 <p className="text-gray-300 font-mono text-sm mb-4">Too many incorrect attempts.</p>
                                 <div className="text-4xl font-mono text-red-400 font-bold tracking-widest">
-                                    {minutes}:{seconds.toString().padStart(2, '0')}
+                                    {minutes}:{formattedSeconds}
                                 </div>
                                 <p className="text-gray-500 font-mono text-xs mt-6">Try again in 5 minutes</p>
                             </div>
@@ -467,11 +514,14 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
             const [overlapModal, setOverlapModal] = useState(null);
             
             // Check orientation for prompt
-            const [isPortrait, setIsPortrait] = useState(window.innerHeight > window.innerWidth);
+            const [isPortrait, setIsPortrait] = useState(false);
             useEffect(() => {
-                const handleResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
-                window.addEventListener('resize', handleResize);
-                return () => window.removeEventListener('resize', handleResize);
+                if (typeof window !== 'undefined') {
+                    setIsPortrait(window.innerHeight > window.innerWidth);
+                    const handleResize = () => setIsPortrait(window.innerHeight > window.innerWidth);
+                    window.addEventListener('resize', handleResize);
+                    return () => window.removeEventListener('resize', handleResize);
+                }
             }, []);
 
             const [colorMap, setColorMap] = useState(() => {
@@ -789,7 +839,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                 <span>Click any rotation block to see who else shares that rotation week!</span>
                             </div>
 
-                            {viewMode === 'TIMELINE' && window.innerWidth < 768 && isPortrait && (
+                            {viewMode === 'TIMELINE' && typeof window !== 'undefined' && window.innerWidth < 768 && isPortrait && (
                                 <div className="mb-4 bg-blue-900/40 border border-blue-400/30 p-2 rounded-lg flex justify-center text-white text-[10px] uppercase font-bold tracking-widest text-center shadow-inner no-print animate-pulse">
                                     Rotate device for best Timeline view
                                 </div>
@@ -906,7 +956,9 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                             </div>
                         </div>
 
-                        {overlapModal && (
+                        {overlapModal && (() => {
+                            const bgColorClass = colorMap[overlapModal.week.rotation] ? colorMap[overlapModal.week.rotation].split(' ')[0] : 'bg-slate-300';
+                            return (
                             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-6 no-print">
                                 <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full p-5 md:p-7 relative transform transition-all border border-slate-100 flex flex-col max-h-[90vh]">
                                     <button onClick={() => setOverlapModal(null)} className="absolute top-4 right-4 md:top-5 md:right-5 text-slate-400 hover:text-[#9e152b] bg-slate-50 hover:bg-red-50 p-2 rounded-full transition-colors z-10 shrink-0">
@@ -915,7 +967,7 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                     
                                     <div className="shrink-0 mb-4 pr-10">
                                         <div className="flex items-center gap-2 md:gap-3 mb-1">
-                                            <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full shadow-inner shrink-0 ${colorMap[overlapModal.week.rotation]?.split(' ')[0] || 'bg-slate-300'}`}></div>
+                                            <div className={`w-3 h-3 md:w-4 md:h-4 rounded-full shadow-inner shrink-0 ${bgColorClass}`}></div>
                                             <h3 className="text-xl md:text-2xl font-bold text-slate-800 tracking-tight leading-tight">{data.rotKey[overlapModal.week.rotation] || overlapModal.week.rotation}</h3>
                                         </div>
                                         <p className="text-slate-500 text-xs md:text-sm font-medium pl-5 md:pl-7">
@@ -961,7 +1013,8 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
                                     </div>
                                 </div>
                             </div>
-                        )}
+                            );
+                        })()}
 
                         <div className="mt-8 mb-2 text-center w-full no-print">
                             <p className="text-white/60 text-[10px] md:text-xs font-medium tracking-widest">-ZS 2026</p>
@@ -974,7 +1027,11 @@ VA,Vacation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,`;
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        root.render(
+            <ErrorBoundary>
+                <App />
+            </ErrorBoundary>
+        );
     </script>
 </body>
 </html>
